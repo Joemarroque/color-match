@@ -54,6 +54,7 @@
 <button id="playAgain" style="display: none;">Play Again</button>
 
 <audio id="clickSound" src="click.mp3"></audio>
+<audio id="gameOverSound" src="gameover.mp3"></audio>
   
 <script>
   const colors = ["red", "blue", "green", "yellow", "orange", "purple", "cyan", "pink"];
@@ -125,6 +126,9 @@
 
             if (remainingTurns === 0 && document.querySelectorAll('.tile.revealed').length < tiles.length) {
               endGame("Game Over! You ran out of turns.");
+                  document.getElementById('playAgain').style.display = 'block';
+  }, 100); // small delay to let the sound play before alert
+}
             }
           }, 800);
         }
