@@ -6,22 +6,21 @@
   <style>
     body {
       font-family: sans-serif;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
       background: #222;
       color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
       margin: 0;
-      position: relative;
     }
 
     .grid {
       display: grid;
       grid-template-columns: repeat(4, 80px);
       grid-gap: 10px;
-      margin-bottom: 20px;
+      margin: 20px 0;
     }
 
     .tile {
@@ -48,8 +47,8 @@
     }
 
     #turns {
-      margin-bottom: 15px;
       font-size: 18px;
+      margin-bottom: 10px;
     }
 
     #musicToggle {
@@ -57,23 +56,21 @@
       top: 20px;
       right: 20px;
       background: #333;
-      padding: 10px 15px;
+      padding: 10px;
       border-radius: 10px;
       cursor: pointer;
-      user-select: none;
       font-size: 20px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
       box-shadow: 0 0 5px #000;
+    }
+
+    #musicToggle span {
+      margin-left: 5px;
     }
   </style>
 </head>
 <body>
 
-<div id="musicToggle">
-  🎵 <span id="musicStatus">🔴</span>
-</div>
+<div id="musicToggle">🎵<span id="musicStatus">🔴</span></div>
 
 <h2>Color Match</h2>
 <div id="turns">Turns left: 10</div>
@@ -86,7 +83,7 @@
 
 <script>
   const colors = ["red", "blue", "green", "yellow", "orange", "purple", "cyan", "pink"];
-  let tiles = [...colors, ...colors].sort(() => 0.5 - Math.random());
+  let tiles = [...colors, ...colors].sort(() => Math.random() - 0.5);
 
   const grid = document.getElementById('gameGrid');
   const turnsDisplay = document.getElementById('turns');
@@ -107,13 +104,14 @@
   }
 
   function reset() {
-    [firstTile, secondTile] = [null, null];
+    firstTile = null;
+    secondTile = null;
     lockBoard = false;
   }
 
   function checkGameOver() {
-    const allRevealed = document.querySelectorAll('.tile.revealed');
-    if (allRevealed.length === tiles.length) {
+    const revealed = document.querySelectorAll('.tile.revealed');
+    if (revealed.length === tiles.length) {
       endGame("🎉 Congratulations! You matched all colors🤩");
     }
   }
@@ -122,7 +120,6 @@
     gameEnded = true;
     bgMusic.pause();
     bgMusic.currentTime = 0;
-
     document.getElementById('gameOverSound').play();
     setTimeout(() => {
       alert(message);
@@ -130,73 +127,67 @@
     }, 1000);
   }
 
-  musicToggle.addEventListener('click', () => {
-    if (bgMusic.paused) {
-      bgMusic.play().then(() => {
-        musicStatus.textContent = '🟢';
-      }).catch(() => {
-        console.log("Autoplay blocked.");
-      });
-    } else {
-      bgMusic.pause();
-      musicStatus.textContent = '🔴';
-    }
-  });
-
-  tiles.forEach((color, index) => {
+  function createTile(color, index) {
     const tile = document.createElement('div');
-    tile.className = 'tile';
+    tile.classList.add('tile');
     tile.dataset.color = color;
     tile.dataset.index = index;
 
     tile.addEventListener('click', () => {
-      if (lockBoard || tile.classList.contains('revealed') || tile === firstTile || remainingTurns <= 0 || gameEnded) return;
+      if (lockBoard || tile.classList.contains('revealed') || tile === firstTile || gameEnded || remainingTurns <= 0) return;
 
       document.getElementById('clickSound').play();
       tile.style.background = color;
 
       if (!firstTile) {
         firstTile = tile;
+        return;
+      }
+
+      secondTile = tile;
+      lockBoard = true;
+
+      if (firstTile.dataset.color === secondTile.dataset.color) {
+        firstTile.classList.add('revealed');
+        secondTile.classList.add('revealed');
+        streak++;
+        if (streak > 1) remainingTurns++;
+        reset();
+        updateTurns();
+        checkGameOver();
       } else {
-        secondTile = tile;
-        lockBoard = true;
-
-        if (firstTile.dataset.color === secondTile.dataset.color) {
-          streak++;
-          if (streak > 1) {
-            remainingTurns++;
-          }
-          updateTurns();
-          firstTile.classList.add('revealed');
-          secondTile.classList.add('revealed');
+        streak = 0;
+        remainingTurns--;
+        updateTurns();
+        setTimeout(() => {
+          firstTile.style.background = '#444';
+          secondTile.style.background = '#444';
           reset();
-          checkGameOver();
-        } else {
-          streak = 0;
-          remainingTurns--;
-          updateTurns();
-
-          setTimeout(() => {
-            firstTile.style.background = "#444";
-            secondTile.style.background = "#444";
-            reset();
-
-            if (remainingTurns === 0 && document.querySelectorAll('.tile.revealed').length < tiles.length) {
-              endGame("Game Over! You ran out of turns👹");
-            }
-          }, 800);
-        }
+          if (remainingTurns === 0) {
+            endGame("Game Over! You ran out of turns👹");
+          }
+        }, 800);
       }
     });
 
     grid.appendChild(tile);
-  });
+  }
 
-  playAgainBtn.addEventListener('click', () => {
-    location.reload();
-  });
-
+  tiles.forEach((color, index) => createTile(color, index));
   updateTurns();
+
+  musicToggle.addEventListener('click', () => {
+    if (bgMusic.paused) {
+      bgMusic.play().then(() => {
+        musicStatus.textContent = "🟢";
+      }).catch(err => console.log(err));
+    } else {
+      bgMusic.pause();
+      musicStatus.textContent = "🔴";
+    }
+  });
+
+  playAgainBtn.addEventListener('click', () => location.reload());
 </script>
 
 </body>
