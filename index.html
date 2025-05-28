@@ -53,6 +53,8 @@
 <div class="grid" id="gameGrid"></div>
 <button id="playAgain" style="display: none;">Play Again</button>
 
+<audio id="clickSound" src="click.mp3"></audio>
+  
 <script>
   const colors = ["red", "blue", "green", "yellow", "orange", "purple", "cyan", "pink"];
   let tiles = [...colors, ...colors];
@@ -89,6 +91,8 @@
     tile.addEventListener('click', () => {
       if (lockBoard || tile.classList.contains('revealed') || tile === firstTile || remainingTurns <= 0) return;
 
+      document.getElementById('clickSound').play();
+      
       tile.style.background = color;
 
       if (!firstTile) {
