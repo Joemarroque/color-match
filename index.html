@@ -74,7 +74,12 @@
   let streak = 0;
   let gameEnded = false;
 
-  let musicStarted = false;
+  function updateTurns() {
+    turnsDisplay.textContent = `Turns left: ${remainingTurns}`;
+  }
+
+  // Start background music on first user click (only once)
+let musicStarted = false;
 document.addEventListener('click', () => {
   if (!musicStarted) {
     const bgMusic = document.getElementById('bgMusic');
@@ -84,10 +89,6 @@ document.addEventListener('click', () => {
     musicStarted = true;
   }
 }, { once: true });
-
-  function updateTurns() {
-    turnsDisplay.textContent = `Turns left: ${remainingTurns}`;
-  }
 
 function endGame(message) {
   gameEnded = true;
@@ -104,60 +105,54 @@ function endGame(message) {
   }, soundDuration);
 }
 
-  tiles.forEach((color, index) => {
-    const tile = document.createElement('div');
-    tile.className = 'tile';
-    tile.dataset.color = color;
-    tile.dataset.index = index;
+tiles.forEach((color, index) => {
+  const tile = document.createElement('div');
+  tile.className = 'tile';
+  tile.dataset.color = color;
+  tile.dataset.index = index;
 
   tile.addEventListener('click', () => {
-  if (lockBoard || tile.classList.contains('revealed') || tile === firstTile || remainingTurns <= 0 || gameEnded) return;
+    if (lockBoard || tile.classList.contains('revealed') || tile === firstTile || remainingTurns <= 0 || gameEnded) return;
 
-   document.getElementById('clickSound').play();
+    document.getElementById('clickSound').play();
+    tile.style.background = color;
 
-  // The rest of your tile reveal and matching logic follows here...
-});
-      
-      tile.style.background = color;
+    if (!firstTile) {
+      firstTile = tile;
+    } else {
+      secondTile = tile;
+      lockBoard = true;
 
-      if (!firstTile) {
-        firstTile = tile;
-      } else {
-        secondTile = tile;
-        lockBoard = true;
-
-        if (firstTile.dataset.color === secondTile.dataset.color) {
-          // ✅ Correct Match: No deduction, add to streak
-          streak++;
-          if (streak > 1) {
-            remainingTurns++; // Reward extra turn
-          }
-          updateTurns();
-          firstTile.classList.add('revealed');
-          secondTile.classList.add('revealed');
-          reset();
-          checkGameOver();
-        } else {
-          // ❌ Wrong Match: Deduct turn and reset streak
-          streak = 0;
-          remainingTurns--;
-          updateTurns();
-
-          setTimeout(() => {
-            firstTile.style.background = "#444";
-            secondTile.style.background = "#444";
-            reset();
-
-            if (remainingTurns === 0 && document.querySelectorAll('.tile.revealed').length < tiles.length) {
-              endGame("Game Over! You ran out of turns.");
-            }
-          }, 800);
+      if (firstTile.dataset.color === secondTile.dataset.color) {
+        streak++;
+        if (streak > 1) {
+          remainingTurns++; // Reward extra turn
         }
-      }
-    });
+        updateTurns();
+        firstTile.classList.add('revealed');
+        secondTile.classList.add('revealed');
+        reset();
+        checkGameOver();
+      } else {
+        streak = 0;
+        remainingTurns--;
+        updateTurns();
 
-    grid.appendChild(tile);
+        setTimeout(() => {
+          firstTile.style.background = "#444";
+          secondTile.style.background = "#444";
+          reset();
+
+          if (remainingTurns === 0 && document.querySelectorAll('.tile.revealed').length < tiles.length) {
+            endGame("Game Over! You ran out of turns.");
+          }
+        }, 800);
+      }
+    }
   });
+
+  grid.appendChild(tile);
+});
 
   function reset() {
     [firstTile, secondTile] = [null, null];
