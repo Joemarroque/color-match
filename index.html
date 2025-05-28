@@ -77,11 +77,16 @@
   }
 
   function endGame(message) {
-    setTimeout(() => {
-      alert(message);
-      playAgainBtn.style.display = 'block';
-    }, 300);
-  }
+  const gameOverSound = document.getElementById('gameOverSound');
+  gameOverSound.play();
+
+  // Wait for the sound to finish or 1 second, whichever comes first
+  const soundDuration = 1000; // adjust if your sound is longer/shorter
+  setTimeout(() => {
+    alert(message);
+    playAgainBtn.style.display = 'block';
+  }, soundDuration);
+}
 
   tiles.forEach((color, index) => {
     const tile = document.createElement('div');
