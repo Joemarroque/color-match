@@ -16,12 +16,14 @@
       margin: 0;
       position: relative;
     }
+
     .grid {
       display: grid;
       grid-template-columns: repeat(4, 80px);
       grid-gap: 10px;
       margin-bottom: 20px;
     }
+
     .tile {
       width: 80px;
       height: 80px;
@@ -29,11 +31,12 @@
       border-radius: 10px;
       cursor: pointer;
       transition: background 0.5s, border 0.3s;
-      border: 2px solid #666;
     }
+
     .revealed {
       border: 2px solid #fff;
     }
+
     button {
       padding: 10px 20px;
       font-size: 16px;
@@ -43,51 +46,27 @@
       color: white;
       cursor: pointer;
     }
+
     #turns {
       margin-bottom: 15px;
       font-size: 18px;
     }
+
     #musicToggle {
       position: absolute;
-      top: 10px;
-      right: 10px;
-      width: 40px;
-      height: 40px;
+      top: 20px;
+      right: 20px;
       background: #333;
-      border: none;
-      border-radius: 6px;
+      padding: 10px 15px;
+      border-radius: 10px;
       cursor: pointer;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      color: white;
+      user-select: none;
       font-size: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 0 5px #000;
     }
-    #musicToggle .indicator {
-      display: inline-block;
-      margin-left: 4px;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: red;
-    }
-    
-    #musicToggle {
-  position: absolute;
-  top: 20px;
-  right: 20px;
-  background: #333;
-  padding: 10px 15px;
-  border-radius: 10px;
-  cursor: pointer;
-  user-select: none;
-  font-size: 20px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  box-shadow: 0 0 5px #000;
-}
-    
   </style>
 </head>
 <body>
@@ -101,23 +80,20 @@
 <div class="grid" id="gameGrid"></div>
 <button id="playAgain" style="display: none;">Play Again</button>
 
-<button id="musicToggle">🎵<span class="indicator"></span></button>
-
 <audio id="clickSound" src="click.mp3"></audio>
 <audio id="gameOverSound" src="gameover.mp3"></audio>
 <audio id="bgMusic" src="bg-music.mp3" loop></audio>
-  
+
 <script>
   const colors = ["red", "blue", "green", "yellow", "orange", "purple", "cyan", "pink"];
-  let tiles = [...colors, ...colors];
-  tiles = tiles.sort(() => 0.5 - Math.random());
+  let tiles = [...colors, ...colors].sort(() => 0.5 - Math.random());
 
   const grid = document.getElementById('gameGrid');
   const turnsDisplay = document.getElementById('turns');
   const playAgainBtn = document.getElementById('playAgain');
-  const musicToggleBtn = document.getElementById('musicToggle');
-  const musicIndicator = musicToggleBtn.querySelector('.indicator');
   const bgMusic = document.getElementById('bgMusic');
+  const musicToggle = document.getElementById('musicToggle');
+  const musicStatus = document.getElementById('musicStatus');
 
   let firstTile = null;
   let secondTile = null;
@@ -126,51 +102,46 @@
   let streak = 0;
   let gameEnded = false;
 
-  const bgMusic = document.getElementById('bgMusic');
-const musicToggle = document.getElementById('musicToggle');
-const musicStatus = document.getElementById('musicStatus');
-
-musicToggle.addEventListener('click', () => {
-  if (bgMusic.paused) {
-    bgMusic.play().then(() => {
-      musicStatus.textContent = '🟢';
-    }).catch(() => {
-      console.log("Autoplay blocked or playback error.");
-    });
-  } else {
-    bgMusic.pause();
-    musicStatus.textContent = '🔴';
-  }
-});
-
   function updateTurns() {
     turnsDisplay.textContent = `Turns left: ${remainingTurns}`;
   }
 
-  musicToggleBtn.addEventListener('click', () => {
-    if (bgMusic.paused) {
-      bgMusic.play();
-      musicIndicator.style.background = 'lime';
-    } else {
-      bgMusic.pause();
-      musicIndicator.style.background = 'red';
+  function reset() {
+    [firstTile, secondTile] = [null, null];
+    lockBoard = false;
+  }
+
+  function checkGameOver() {
+    const allRevealed = document.querySelectorAll('.tile.revealed');
+    if (allRevealed.length === tiles.length) {
+      endGame("🎉 Congratulations! You matched all colors🤩");
     }
-  });
+  }
 
   function endGame(message) {
     gameEnded = true;
     bgMusic.pause();
     bgMusic.currentTime = 0;
 
-    const gameOverSound = document.getElementById('gameOverSound');
-    gameOverSound.play();
-
-    const soundDuration = 1000;
+    document.getElementById('gameOverSound').play();
     setTimeout(() => {
       alert(message);
       playAgainBtn.style.display = 'block';
-    }, soundDuration);
+    }, 1000);
   }
+
+  musicToggle.addEventListener('click', () => {
+    if (bgMusic.paused) {
+      bgMusic.play().then(() => {
+        musicStatus.textContent = '🟢';
+      }).catch(() => {
+        console.log("Autoplay blocked.");
+      });
+    } else {
+      bgMusic.pause();
+      musicStatus.textContent = '🔴';
+    }
+  });
 
   tiles.forEach((color, index) => {
     const tile = document.createElement('div');
@@ -221,24 +192,11 @@ musicToggle.addEventListener('click', () => {
     grid.appendChild(tile);
   });
 
-  function reset() {
-    [firstTile, secondTile] = [null, null];
-    lockBoard = false;
-  }
-
-  function checkGameOver() {
-    const allRevealed = document.querySelectorAll('.tile.revealed');
-    if (allRevealed.length === tiles.length) {
-      endGame("🎉 Congratulations! You matched all colors🤩");
-    }
-  }
-
   playAgainBtn.addEventListener('click', () => {
     location.reload();
   });
 
   updateTurns();
-  musicIndicator.style.background = 'red';
 </script>
 
 </body>
