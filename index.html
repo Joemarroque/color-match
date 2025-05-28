@@ -74,12 +74,6 @@
   let streak = 0;
   let gameEnded = false;
 
-  const bgMusic = document.getElementById('bgMusic');
-bgMusic.play().catch(() => {
-  // Autoplay policies may block it. You can optionally handle that here.
-  console.log("Background music autoplay blocked.");
-});
-
   function updateTurns() {
     turnsDisplay.textContent = `Turns left: ${remainingTurns}`;
   }
@@ -107,6 +101,12 @@ function endGame(message) {
 
     tile.addEventListener('click', () => {
       if (lockBoard || tile.classList.contains('revealed') || tile === firstTile || remainingTurns <= 0 || gameEnded) return;
+      
+      if (bgMusic.paused) {
+    bgMusic.play().catch(() => {
+      console.log("Background music autoplay blocked.");
+    });
+  }
 
       document.getElementById('clickSound').play();
       
