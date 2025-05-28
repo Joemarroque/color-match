@@ -78,12 +78,12 @@
 <div class="grid" id="gameGrid"></div>
 <button id="playAgain" style="display: none;">Play Again</button>
 
-<audio id="clickSound" src="click.mp3"></audio>
+<audio id="clickSound" src="click-1.mp3"></audio>
 <audio id="gameOverSound" src="gameover.mp3"></audio>
 <audio id="bgMusic" src="bg-music.mp3" loop></audio>
 
 <script>
-  const colors = ["red", "blue", "green", "yellow", "orange", "purple", "cyan", "pink"];
+  const colors = ["red", "blue", "green", "yellow", "orange", "white", "cyan", "pink"];
   let tiles = [...colors, ...colors].sort(() => Math.random() - 0.5);
 
   const grid = document.getElementById('gameGrid');
