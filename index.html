@@ -126,9 +126,6 @@
 
             if (remainingTurns === 0 && document.querySelectorAll('.tile.revealed').length < tiles.length) {
               endGame("Game Over! You ran out of turns.");
-                  document.getElementById('playAgain').style.display = 'block';
-  }, 100); // small delay to let the sound play before alert
-}
             }
           }, 800);
         }
