@@ -99,16 +99,19 @@ function endGame(message) {
     tile.dataset.color = color;
     tile.dataset.index = index;
 
-    tile.addEventListener('click', () => {
-      if (lockBoard || tile.classList.contains('revealed') || tile === firstTile || remainingTurns <= 0 || gameEnded) return;
-      
-      if (bgMusic.paused) {
+  tile.addEventListener('click', () => {
+  if (lockBoard || tile.classList.contains('revealed') || tile === firstTile || remainingTurns <= 0 || gameEnded) return;
+
+  if (bgMusic.paused) {
     bgMusic.play().catch(() => {
       console.log("Background music autoplay blocked.");
     });
   }
 
-      document.getElementById('clickSound').play();
+   document.getElementById('clickSound').play();
+
+  // The rest of your tile reveal and matching logic follows here...
+});
       
       tile.style.background = color;
 
