@@ -55,6 +55,7 @@
 
 <audio id="clickSound" src="click.mp3"></audio>
 <audio id="gameOverSound" src="gameover.mp3"></audio>
+<audio id="bgMusic" src="bg-music.mp3" loop></audio>
   
 <script>
   const colors = ["red", "blue", "green", "yellow", "orange", "purple", "cyan", "pink"];
@@ -73,12 +74,21 @@
   let streak = 0;
   let gameEnded = false;
 
+  const bgMusic = document.getElementById('bgMusic');
+bgMusic.play().catch(() => {
+  // Autoplay policies may block it. You can optionally handle that here.
+  console.log("Background music autoplay blocked.");
+});
+
   function updateTurns() {
     turnsDisplay.textContent = `Turns left: ${remainingTurns}`;
   }
 
 function endGame(message) {
   gameEnded = true;
+  bgMusic.pause();
+  bgMusic.currentTime = 0;
+  
   const gameOverSound = document.getElementById('gameOverSound');
   gameOverSound.play();
 
