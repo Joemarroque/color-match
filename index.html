@@ -71,17 +71,18 @@
 
   let remainingTurns = 10;
   let streak = 0;
+  let gameEnded = false;
 
   function updateTurns() {
     turnsDisplay.textContent = `Turns left: ${remainingTurns}`;
   }
 
-  function endGame(message) {
+function endGame(message) {
+  gameEnded = true;
   const gameOverSound = document.getElementById('gameOverSound');
   gameOverSound.play();
 
-  // Wait for the sound to finish or 1 second, whichever comes first
-  const soundDuration = 1000; // adjust if your sound is longer/shorter
+  const soundDuration = 1000; // adjust this to your sound length if needed
   setTimeout(() => {
     alert(message);
     playAgainBtn.style.display = 'block';
@@ -95,7 +96,7 @@
     tile.dataset.index = index;
 
     tile.addEventListener('click', () => {
-      if (lockBoard || tile.classList.contains('revealed') || tile === firstTile || remainingTurns <= 0) return;
+      if (lockBoard || tile.classList.contains('revealed') || tile === firstTile || remainingTurns <= 0 || gameEnded) return;
 
       document.getElementById('clickSound').play();
       
