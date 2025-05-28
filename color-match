@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Color Match</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background: #222;
+      color: #fff;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 80px);
+      grid-gap: 10px;
+      margin-bottom: 20px;
+    }
+    .tile {
+      width: 80px;
+      height: 80px;
+      background: #444;
+      border-radius: 10px;
+      cursor: pointer;
+      transition: 0.3s;
+    }
+    .revealed {
+      border: 2px solid #fff;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #08f;
+      border: none;
+      border-radius: 6px;
+      color: white;
+      cursor: pointer;
+    }
+    #turns {
+      margin-bottom: 15px;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+
+<h2>Color Match</h2>
+<div id="turns">Turns left: 10</div>
+<div class="grid" id="gameGrid"></div>
+<button id="playAgain" style="display: none;">Play Again</button>
+
+<script>
+  const colors = ["red", "blue", "green", "yellow", "orange", "purple", "cyan", "pink"];
+  let tiles = [...colors, ...colors];
+  tiles = tiles.sort(() => 0.5 - Math.random());
+
+  const grid = document.getElementById('gameGrid');
+  const turnsDisplay = document.getElementById('turns');
+  const playAgainBtn = document.getElementById('playAgain');
+
+  let firstTile = null;
+  let secondTile = null;
+  let lockBoard = false;
+
+  let remainingTurns = 10;
+  let streak = 0;
+
+  function updateTurns() {
+    turnsDisplay.textContent = `Turns left: ${remainingTurns}`;
+  }
+
+  function endGame(message) {
+    setTimeout(() => {
+      alert(message);
+      playAgainBtn.style.display = 'block';
+    }, 300);
+  }
+
+  tiles.forEach((color, index) => {
+    const tile = document.createElement('div');
+    tile.className = 'tile';
+    tile.dataset.color = color;
+    tile.dataset.index = index;
+
+    tile.addEventListener('click', () => {
+      if (lockBoard || tile.classList.contains('revealed') || tile === firstTile || remainingTurns <= 0) return;
+
+      tile.style.background = color;
+
+      if (!firstTile) {
+        firstTile = tile;
+      } else {
+        secondTile = tile;
+        lockBoard = true;
+
+        if (firstTile.dataset.color === secondTile.dataset.color) {
+          // ✅ Correct Match: No deduction, add to streak
+          streak++;
+          if (streak > 1) {
+            remainingTurns++; // Reward extra turn
+          }
+          updateTurns();
+          firstTile.classList.add('revealed');
+          secondTile.classList.add('revealed');
+          reset();
+          checkGameOver();
+        } else {
+          // ❌ Wrong Match: Deduct turn and reset streak
+          streak = 0;
+          remainingTurns--;
+          updateTurns();
+
+          setTimeout(() => {
+            firstTile.style.background = "#444";
+            secondTile.style.background = "#444";
+            reset();
+
+            if (remainingTurns === 0 && document.querySelectorAll('.tile.revealed').length < tiles.length) {
+              endGame("Game Over! You ran out of turns.");
+            }
+          }, 800);
+        }
+      }
+    });
+
+    grid.appendChild(tile);
+  });
+
+  function reset() {
+    [firstTile, secondTile] = [null, null];
+    lockBoard = false;
+  }
+
+  function checkGameOver() {
+    const allRevealed = document.querySelectorAll('.tile.revealed');
+    if (allRevealed.length === tiles.length) {
+      endGame("🎉 Congratulations! You matched all colors.");
+    }
+  }
+
+  playAgainBtn.addEventListener('click', () => {
+    location.reload();
+  });
+
+  updateTurns();
+</script>
+
+</body>
+</html>
