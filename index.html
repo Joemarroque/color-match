@@ -11,22 +11,18 @@
     .tile { width: 80px; height: 80px; background: #444; cursor: pointer; border-radius: 8px; transition: background 0.3s; }
     .tile.revealed { cursor: default; opacity: 0.6; }
     #startGame:disabled { opacity: 0.5; cursor: not-allowed; }
-
     .orb { background: #555; border-radius: 50%; margin-top: 15px; transition: all 0.3s; }
-    .orb-size-0 { width: 20px; height: 20px; }
+    .orb-size-0 { width: 30px; height: 30px; }
     .orb-size-1 { width: 40px; height: 40px; }
     .orb-size-2 { width: 60px; height: 60px; }
     .orb-size-3 { width: 80px; height: 80px; }
-    .glow-1 { box-shadow: 0 0 8px 3px blue; }
-    .glow-2 { box-shadow: 0 0 15px 5px cyan; }
-    .glow-3 { box-shadow: 0 0 25px 8px orange; }
-
+    .glow-1 { box-shadow: 0 0 8px 3px lightSlateGrey; }
+    .glow-2 { box-shadow: 0 0 15px 5px mediumSpringGreen; }
+    .glow-3 { box-shadow: 0 0 25px 8px Gold; }
     .leaderboard { margin-top: 20px; max-height: 300px; overflow-y: auto; }
     .entry.highlight { font-weight: bold; color: yellow; }
     button { margin-top: 10px; padding: 10px; border: none; border-radius: 5px; background: #0a74da; color: white; cursor: pointer; }
   </style>
-
-  <!-- Firebase SDK -->
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
 </head>
@@ -77,10 +73,17 @@
   const startGameBtn = document.getElementById("startGame");
   const namePrompt = document.getElementById("namePrompt");
 
-  let tiles = [], firstTile = null, secondTile = null;
-  let lockBoard = false, remainingTurns = 10;
-  let streak = 0, orbCharge = 0, score = 0;
-  let gameEnded = true, playerName = "", successfulGames = 0;
+  let tiles = [];
+  let firstTile = null;
+  let secondTile = null;
+  let lockBoard = false;
+  let remainingTurns = 10;
+  let streak = 0;
+  let orbCharge = 0;
+  let score = 0;
+  let gameEnded = true;
+  let playerName = "";
+  let successfulGames = 0;
 
   nameInput.addEventListener("input", () => {
     playerName = nameInput.value.trim().slice(0, 12);
@@ -89,6 +92,7 @@
 
   startGameBtn.addEventListener("click", () => {
     if (playerName === "") return;
+
     remainingTurns = 10;
     streak = 0;
     score = 0;
@@ -141,8 +145,10 @@
           leaderboard.innerHTML = "<strong>Leaderboard</strong><br>No data yet.";
           return;
         }
+
         const sorted = Object.values(data).sort((a, b) => b.score - a.score);
-        leaderboard.innerHTML = `<strong>Leaderboard</strong><br>`;
+        leaderboard.innerHTML = "<strong>Leaderboard</strong><br>";
+
         sorted.forEach(p => {
           const entry = document.createElement("div");
           entry.className = "entry";
@@ -169,6 +175,7 @@
     alert(message);
     if (won) {
       successfulGames++;
+      orbCharge++;
       if (orbCharge >= 3) {
         score++;
         orbCharge = 0;
@@ -181,6 +188,7 @@
       retryBtn.style.display = "inline-block";
       continueBtn.style.display = "none";
     }
+
     updateOrb();
     updateScore();
     saveScoreIfHigher();
@@ -204,21 +212,22 @@
 
       tile.addEventListener("click", () => {
         if (lockBoard || tile.classList.contains("revealed") || tile === firstTile || remainingTurns <= 0 || gameEnded) return;
+
         tile.style.background = color;
+
         if (!firstTile) {
           firstTile = tile;
         } else {
           secondTile = tile;
           lockBoard = true;
+
           if (firstTile.dataset.color === secondTile.dataset.color) {
             firstTile.classList.add("revealed");
             secondTile.classList.add("revealed");
             streak++;
-            orbCharge++; // 🔁 Grow orb on match
-            updateOrb();  // 🔁 Reflect orb state
-            if (remainingTurns > 5) remainingTurns--;
             updateTurns();
             resetTiles();
+
             if (document.querySelectorAll('.tile.revealed').length === tiles.length) {
               endGame("🎉 You matched all colors!", true);
             }
@@ -261,7 +270,6 @@
   retryBtn.addEventListener("click", () => {
     restartGame(10);
   });
-
 </script>
 
 </body>
