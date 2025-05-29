@@ -1,213 +1,302 @@
-// Import Firebase modular APIs from the loaded SDK (already loaded via <script>)
-const { initializeApp } = firebase;
-const { getDatabase, ref, query, orderByChild, limitToLast, onValue, get, set, child } = firebase.database;
-
-// Firebase config
-const firebaseConfig = {
-  apiKey: "AIzaSyA0cWK1uSrL6RdJM7ZD72-buLoh8Yoj2ik",
-  authDomain: "match-color-778e0.firebaseapp.com",
-  databaseURL: "https://match-color-778e0-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "match-color-778e0",
-  storageBucket: "match-color-778e0.appspot.com",
-  messagingSenderId: "377488439379",
-  appId: "1:377488439379:web:7cc6c74cd528fa08b22ea6",
-  measurementId: "G-57VFQSTKLP"
-};
-
-// Initialize Firebase app and database
-const app = initializeApp(firebaseConfig);
-const db = getDatabase(app);
-
-// DOM elements
-const gameGrid = document.getElementById("gameGrid");
-const turnsDisplay = document.getElementById("turns");
-const scoreDisplay = document.getElementById("score");
-const orb = document.getElementById("orb");
-const leaderboard = document.getElementById("leaderboard");
-const continueBtn = document.getElementById("continueGame");
-const retryBtn = document.getElementById("retryGame");
-const nameInput = document.getElementById("playerNameInput");
-const startGameBtn = document.getElementById("startGame");
-const namePrompt = document.getElementById("namePrompt");
-
-const colors = ["red", "blue", "green", "yellow", "orange", "purple", "cyan", "pink"];
-
-let tiles = [...colors, ...colors];
-let firstTile = null;
-let secondTile = null;
-let lockBoard = false;
-let remainingTurns = 10;
-let streak = 0;
-let orbCharge = 0;
-let score = 0;
-let gameEnded = true;
-let playerName = "";
-let successfulGames = 0;
-
-nameInput.addEventListener("input", () => {
-  playerName = nameInput.value.trim().slice(0, 12);
-  startGameBtn.disabled = playerName === "";
-});
-
-startGameBtn.addEventListener("click", () => {
-  playerName = nameInput.value.trim().slice(0, 12); // ensure playerName is set on start
-  if (!playerName) return;
-  
-  gameEnded = false;
-  namePrompt.style.display = "none";
-  startGameBtn.style.display = "none";
-  nameInput.disabled = true;
-  generateTiles();
-  updateTurns();
-  updateOrb();
-  updateScore();
-  updateLeaderboard();
-});
-
-function updateTurns() {
-  turnsDisplay.textContent = `Turns left: ${remainingTurns}`;
-}
-
-function updateScore() {
-  scoreDisplay.textContent = `Score: ${score}`;
-}
-
-function updateOrb() {
-  orb.className = "orb";
-  if (orbCharge === 1) orb.classList.add("glow-1");
-  else if (orbCharge === 2) orb.classList.add("glow-2");
-  else if (orbCharge >= 3) orb.classList.add("glow-3");
-}
-
-function updateLeaderboard() {
-  const playersRef = query(ref(db, "players"), orderByChild("score"), limitToLast(7));
-  onValue(playersRef, snapshot => {
-    const data = snapshot.val();
-    if (!data) {
-      leaderboard.innerHTML = "<strong>Leaderboard</strong><br>No players yet.";
-      return;
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Color Match</title>
+  <style>
+    body {
+      display: flex;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      background: #222;
+      color: #fff;
     }
-    const sorted = Object.values(data).sort((a, b) => b.score - a.score);
-    leaderboard.innerHTML = `<strong>Leaderboard</strong><br>`;
-    sorted.forEach(p => {
-      const entry = document.createElement("div");
-      entry.className = "entry";
-      if (p.name === playerName) entry.classList.add("highlight");
-      entry.textContent = `${p.name}: ${p.score}`;
-      leaderboard.appendChild(entry);
-    });
+    .sidebar {
+      width: 250px;
+      padding: 20px;
+      background: #333;
+    }
+    .main {
+      flex: 1;
+      padding: 20px;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 60px);
+      gap: 10px;
+      margin-top: 20px;
+    }
+    .tile {
+      width: 60px;
+      height: 60px;
+      background: #444;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    .orb {
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      background: gray;
+      margin-top: 20px;
+    }
+    .glow-1 { background: lightblue; box-shadow: 0 0 10px lightblue; }
+    .glow-2 { background: cyan; box-shadow: 0 0 15px cyan; }
+    .glow-3 { background: lime; box-shadow: 0 0 20px lime; }
+    .leaderboard {
+      margin-top: 20px;
+    }
+    .entry {
+      margin-top: 4px;
+    }
+    .highlight {
+      font-weight: bold;
+      color: yellow;
+    }
+    #playerNameInput {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+    }
+    button {
+      padding: 8px 16px;
+      margin-top: 10px;
+    }
+  </style>
+
+  <!-- Firebase SDKs -->
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js"></script>
+</head>
+<body>
+
+<div class="sidebar">
+  <input id="playerNameInput" maxlength="12" placeholder="Enter name...">
+  <div id="namePrompt">Please enter your name to start.</div>
+  <button id="startGame" disabled>Play</button>
+  <div class="leaderboard" id="leaderboard">Leaderboard</div>
+  <div id="score">Score: 0</div>
+  <div class="orb" id="orb"></div>
+</div>
+
+<div class="main">
+  <h2>Color Match</h2>
+  <div id="turns">Turns left: 10</div>
+  <div class="grid" id="gameGrid"></div>
+  <button id="continueGame" style="display:none;">Continue</button>
+  <button id="retryGame" style="display:none;">Retry</button>
+</div>
+
+<script>
+  const { initializeApp } = firebase;
+  const { getDatabase, ref, get, set, query, orderByChild, limitToLast, onValue } = firebase.database;
+
+  const firebaseConfig = {
+    apiKey: "AIzaSyA0cWK1uSrL6RdJM7ZD72-buLoh8Yoj2ik",
+    authDomain: "match-color-778e0.firebaseapp.com",
+    databaseURL: "https://match-color-778e0-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "match-color-778e0",
+    storageBucket: "match-color-778e0.appspot.com",
+    messagingSenderId: "377488439379",
+    appId: "1:377488439379:web:7cc6c74cd528fa08b22ea6",
+    measurementId: "G-57VFQSTKLP"
+  };
+
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  const gameGrid = document.getElementById("gameGrid");
+  const turnsDisplay = document.getElementById("turns");
+  const scoreDisplay = document.getElementById("score");
+  const orb = document.getElementById("orb");
+  const leaderboard = document.getElementById("leaderboard");
+  const continueBtn = document.getElementById("continueGame");
+  const retryBtn = document.getElementById("retryGame");
+  const nameInput = document.getElementById("playerNameInput");
+  const startGameBtn = document.getElementById("startGame");
+  const namePrompt = document.getElementById("namePrompt");
+
+  const colors = ["red", "blue", "green", "yellow", "orange", "purple", "cyan", "pink"];
+
+  let tiles = [...colors, ...colors];
+  let firstTile = null;
+  let secondTile = null;
+  let lockBoard = false;
+  let remainingTurns = 10;
+  let streak = 0;
+  let orbCharge = 0;
+  let score = 0;
+  let gameEnded = true;
+  let playerName = "";
+  let successfulGames = 0;
+
+  nameInput.addEventListener("input", () => {
+    playerName = nameInput.value.trim().slice(0, 12);
+    startGameBtn.disabled = playerName === "";
   });
-}
 
-async function saveScoreIfHigher() {
-  if (!playerName) return;
+  startGameBtn.addEventListener("click", () => {
+    playerName = nameInput.value.trim().slice(0, 12);
+    if (!playerName) return;
 
-  const playerRef = ref(db, "players/" + playerName);
-  const snapshot = await get(playerRef);
-  const existing = snapshot.val();
-  if (!existing || score > existing.score) {
-    await set(playerRef, {
-      name: playerName,
-      score: score
-    });
-  }
-}
+    gameEnded = false;
+    namePrompt.style.display = "none";
+    startGameBtn.style.display = "none";
+    nameInput.disabled = true;
 
-function endGame(message, won) {
-  gameEnded = true;
-  alert(message);
-  if (won) {
-    successfulGames++;
-    orbCharge++;
-    if (orbCharge >= 3) {
-      score++;
-      orbCharge = 0;
-    }
-    continueBtn.style.display = "inline-block";
-    retryBtn.style.display = "none";
-  } else {
-    orbCharge = 0;
-    successfulGames = 0;
-    retryBtn.style.display = "inline-block";
-    continueBtn.style.display = "none";
+    generateTiles();
+    updateTurns();
+    updateOrb();
+    updateScore();
+    updateLeaderboard();
+  });
+
+  function updateTurns() {
+    turnsDisplay.textContent = `Turns left: ${remainingTurns}`;
   }
 
-  updateOrb();
-  updateScore();
-  saveScoreIfHigher();
-}
+  function updateScore() {
+    scoreDisplay.textContent = `Score: ${score}`;
+  }
 
-function resetTiles() {
-  [firstTile, secondTile] = [null, null];
-  lockBoard = false;
-}
+  function updateOrb() {
+    orb.className = "orb";
+    if (orbCharge === 1) orb.classList.add("glow-1");
+    else if (orbCharge === 2) orb.classList.add("glow-2");
+    else if (orbCharge >= 3) orb.classList.add("glow-3");
+  }
 
-function generateTiles() {
-  gameGrid.innerHTML = "";
-  tiles = [...colors, ...colors].sort(() => 0.5 - Math.random());
-  tiles.forEach(color => {
-    const tile = document.createElement("div");
-    tile.className = "tile";
-    tile.style.background = "#444"; // initial hidden color background
-    tile.dataset.color = color;
-
-    tile.addEventListener("click", () => {
-      if (!playerName || lockBoard || tile.classList.contains("revealed") || tile === firstTile || remainingTurns <= 0 || gameEnded) return;
-      tile.style.background = color;
-      if (!firstTile) {
-        firstTile = tile;
-      } else {
-        secondTile = tile;
-        lockBoard = true;
-        if (firstTile.dataset.color === secondTile.dataset.color) {
-          firstTile.classList.add("revealed");
-          secondTile.classList.add("revealed");
-          streak++;
-          if (remainingTurns > 5) remainingTurns--;
-          updateTurns();
-          resetTiles();
-          if (document.querySelectorAll('.tile.revealed').length === tiles.length) {
-            endGame("🎉 You matched all colors!", true);
-          }
-        } else {
-          streak = 0;
-          remainingTurns--;
-          updateTurns();
-          setTimeout(() => {
-            firstTile.style.background = "#444";
-            secondTile.style.background = "#444";
-            resetTiles();
-            if (remainingTurns <= 0) {
-              endGame("Game Over! You ran out of turns.", false);
-            }
-          }, 800);
-        }
+  function updateLeaderboard() {
+    const playersRef = query(ref(db, "players"), orderByChild("score"), limitToLast(7));
+    onValue(playersRef, snapshot => {
+      const data = snapshot.val();
+      leaderboard.innerHTML = `<strong>Leaderboard</strong><br>`;
+      if (!data) {
+        leaderboard.innerHTML += "No players yet.";
+        return;
       }
+      const sorted = Object.values(data).sort((a, b) => b.score - a.score);
+      sorted.forEach(p => {
+        const entry = document.createElement("div");
+        entry.className = "entry";
+        if (p.name === playerName) entry.classList.add("highlight");
+        entry.textContent = `${p.name}: ${p.score}`;
+        leaderboard.appendChild(entry);
+      });
     });
+  }
 
-    gameGrid.appendChild(tile);
+  async function saveScoreIfHigher() {
+    if (!playerName) return;
+
+    const playerRef = ref(db, "players/" + playerName);
+    const snapshot = await get(playerRef);
+    const existing = snapshot.val();
+    if (!existing || score > existing.score) {
+      await set(playerRef, {
+        name: playerName,
+        score: score
+      });
+    }
+  }
+
+  function endGame(message, won) {
+    gameEnded = true;
+    alert(message);
+    if (won) {
+      successfulGames++;
+      orbCharge++;
+      if (orbCharge >= 3) {
+        score++;
+        orbCharge = 0;
+      }
+      continueBtn.style.display = "inline-block";
+      retryBtn.style.display = "none";
+    } else {
+      orbCharge = 0;
+      successfulGames = 0;
+      retryBtn.style.display = "inline-block";
+      continueBtn.style.display = "none";
+    }
+    updateOrb();
+    updateScore();
+    saveScoreIfHigher();
+  }
+
+  function resetTiles() {
+    [firstTile, secondTile] = [null, null];
+    lockBoard = false;
+  }
+
+  function generateTiles() {
+    gameGrid.innerHTML = "";
+    tiles = [...colors, ...colors].sort(() => 0.5 - Math.random());
+    tiles.forEach(color => {
+      const tile = document.createElement("div");
+      tile.className = "tile";
+      tile.style.background = "#444";
+      tile.dataset.color = color;
+
+      tile.addEventListener("click", () => {
+        if (!playerName || lockBoard || tile.classList.contains("revealed") || tile === firstTile || remainingTurns <= 0 || gameEnded) return;
+
+        tile.style.background = color;
+        if (!firstTile) {
+          firstTile = tile;
+        } else {
+          secondTile = tile;
+          lockBoard = true;
+          if (firstTile.dataset.color === secondTile.dataset.color) {
+            firstTile.classList.add("revealed");
+            secondTile.classList.add("revealed");
+            streak++;
+            if (remainingTurns > 5) remainingTurns--;
+            updateTurns();
+            resetTiles();
+            if (document.querySelectorAll('.tile.revealed').length === tiles.length) {
+              endGame("🎉 You matched all colors!", true);
+            }
+          } else {
+            streak = 0;
+            remainingTurns--;
+            updateTurns();
+            setTimeout(() => {
+              firstTile.style.background = "#444";
+              secondTile.style.background = "#444";
+              resetTiles();
+              if (remainingTurns <= 0) {
+                endGame("Game Over! You ran out of turns.", false);
+              }
+            }, 800);
+          }
+        }
+      });
+
+      gameGrid.appendChild(tile);
+    });
+  }
+
+  function restartGame(turns) {
+    remainingTurns = turns;
+    streak = 0;
+    gameEnded = false;
+    updateOrb();
+    updateTurns();
+    generateTiles();
+    continueBtn.style.display = "none";
+    retryBtn.style.display = "none";
+  }
+
+  continueBtn.addEventListener("click", () => {
+    const newTurns = (successfulGames % 3 === 0 && successfulGames > 0) ? 5 : 10;
+    restartGame(newTurns);
   });
-}
 
-function restartGame(turns) {
-  remainingTurns = turns;
-  streak = 0;
-  gameEnded = false;
-  updateOrb();
-  updateTurns();
-  generateTiles();
-  continueBtn.style.display = "none";
-  retryBtn.style.display = "none";
-}
+  retryBtn.addEventListener("click", () => {
+    restartGame(10);
+  });
+</script>
 
-continueBtn.addEventListener("click", () => {
-  const newTurns = (successfulGames % 3 === 0 && successfulGames > 0) ? 5 : 10;
-  restartGame(newTurns);
-});
-
-retryBtn.addEventListener("click", () => {
-  restartGame(10);
-});
-
-// Initial leaderboard load
-updateLeaderboard();
+</body>
+</html>
