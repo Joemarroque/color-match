@@ -7,153 +7,270 @@
     body {
       font-family: sans-serif;
       display: flex;
-      flex-direction: column;
       justify-content: center;
-      align-items: center;
-      height: 100vh;
+      align-items: flex-start;
+      padding: 20px;
       background: #222;
       color: #fff;
-      margin: 0;
     }
-
+    .sidebar {
+      margin-right: 40px;
+      width: 200px;
+    }
+    .orb {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      margin: 20px auto;
+      background: #333;
+      box-shadow: 0 0 10px #555;
+      transition: background 0.5s, box-shadow 0.5s;
+    }
+    .orb.glow-1 { background: #bbb; box-shadow: 0 0 15px #bbb; }
+    .orb.glow-2 { background: #ddd; box-shadow: 0 0 25px #ddd; }
+    .orb.glow-3 { background: #fff; box-shadow: 0 0 35px #fff; }
+    .leaderboard {
+      font-size: 14px;
+      background: #333;
+      padding: 10px;
+      border-radius: 8px;
+      margin-top: 20px;
+    }
+    .leaderboard .entry {
+      padding: 2px 0;
+    }
+    .leaderboard .highlight {
+      color: yellow;
+    }
+    .main {
+      text-align: center;
+    }
     .grid {
       display: grid;
       grid-template-columns: repeat(4, 80px);
       grid-gap: 10px;
       margin-bottom: 20px;
     }
-
     .tile {
       width: 80px;
       height: 80px;
       background: #444;
       border-radius: 10px;
       cursor: pointer;
-      transition: background 0.5s, border 0.3s;
+      transition: background 0.3s;
     }
-
     .revealed {
       border: 2px solid #fff;
     }
-
-    button {
-      padding: 10px 20px;
-      font-size: 16px;
+    #turns, #score {
+      margin-bottom: 10px;
+    }
+    #continueGame, #retryGame, #startGame {
+      padding: 8px 16px;
+      font-size: 14px;
       background: #08f;
       border: none;
       border-radius: 6px;
       color: white;
       cursor: pointer;
+      margin: 5px;
     }
-
-    #turns {
-      margin-bottom: 15px;
-      font-size: 18px;
+    #playerNameInput {
+      width: 100%;
+      padding: 5px;
+      margin-bottom: 5px;
+      border-radius: 5px;
+      border: none;
+    }
+    #namePrompt {
+      font-size: 13px;
+      margin-bottom: 10px;
+      color: #aaa;
     }
   </style>
 </head>
 <body>
 
+<div class="sidebar">
+  <input id="playerNameInput" maxlength="12" placeholder="Enter name...">
+  <div id="namePrompt">Please enter your name to start.</div>
+  <button id="startGame" disabled>Play</button>
+  <div class="leaderboard" id="leaderboard">Leaderboard</div>
+  <div id="score">Score: 0</div>
+  <div class="orb" id="orb"></div>
+</div>
+
+<div class="main">
   <h2>Color Match</h2>
   <div id="turns">Turns left: 10</div>
   <div class="grid" id="gameGrid"></div>
-  <button id="playAgain" style="display: none;">Play Again</button>
+  <button id="continueGame" style="display:none;">Continue</button>
+  <button id="retryGame" style="display:none;">Retry</button>
+</div>
 
-  <script>
-    const colors = ["red", "blue", "green", "yellow", "orange", "purple", "cyan", "pink"];
-    let tiles = [...colors, ...colors];
-    tiles.sort(() => 0.5 - Math.random());
+<script>
+  const colors = ["red", "blue", "green", "yellow", "orange", "purple", "cyan", "pink"];
+  const gameGrid = document.getElementById("gameGrid");
+  const turnsDisplay = document.getElementById("turns");
+  const scoreDisplay = document.getElementById("score");
+  const orb = document.getElementById("orb");
+  const leaderboard = document.getElementById("leaderboard");
+  const continueBtn = document.getElementById("continueGame");
+  const retryBtn = document.getElementById("retryGame");
+  const nameInput = document.getElementById("playerNameInput");
+  const startGameBtn = document.getElementById("startGame");
+  const namePrompt = document.getElementById("namePrompt");
 
-    const grid = document.getElementById('gameGrid');
-    const turnsDisplay = document.getElementById('turns');
-    const playAgainBtn = document.getElementById('playAgain');
+  let tiles = [...colors, ...colors];
+  let firstTile = null;
+  let secondTile = null;
+  let lockBoard = false;
+  let remainingTurns = 10;
+  let streak = 0;
+  let orbCharge = 0;
+  let score = 0;
+  let gameEnded = true;
+  let playerName = "";
+  let players = [];
+  let successfulGames = 0;
 
-    let firstTile = null;
-    let secondTile = null;
-    let lockBoard = false;
+  nameInput.addEventListener("input", () => {
+    playerName = nameInput.value.trim().slice(0, 12);
+    startGameBtn.disabled = playerName === "";
+  });
 
-    let remainingTurns = 10;
-    let streak = 0;
-    let gameEnded = false;
+  startGameBtn.addEventListener("click", () => {
+    gameEnded = false;
+    namePrompt.style.display = "none";
+    startGameBtn.style.display = "none";
+    generateTiles();
+    updateTurns();
+    updateOrb();
+    updateScore();
+  });
 
-    function updateTurns() {
-      turnsDisplay.textContent = `Turns left: ${remainingTurns}`;
+  function updateTurns() {
+    turnsDisplay.textContent = `Turns left: ${remainingTurns}`;
+  }
+
+  function updateScore() {
+    scoreDisplay.textContent = `Score: ${score}`;
+  }
+
+  function updateOrb() {
+    orb.className = "orb";
+    if (orbCharge === 1) orb.classList.add("glow-1");
+    if (orbCharge === 2) orb.classList.add("glow-2");
+    if (orbCharge >= 3) orb.classList.add("glow-3");
+  }
+
+  function updateLeaderboard() {
+    players.push({ name: playerName, score });
+    players = players.sort((a, b) => b.score - a.score).slice(0, 7);
+    leaderboard.innerHTML = `<strong>Leaderboard</strong><br>`;
+    players.forEach(p => {
+      const entry = document.createElement("div");
+      entry.className = "entry";
+      if (p.name === playerName) entry.classList.add("highlight");
+      entry.textContent = `${p.name}: ${p.score}`;
+      leaderboard.appendChild(entry);
+    });
+  }
+
+  function endGame(message, won) {
+    gameEnded = true;
+    alert(message);
+    if (won) {
+      successfulGames++;
+      orbCharge++;
+      if (orbCharge >= 3) {
+        score++;
+        orbCharge = 0;
+      }
+      continueBtn.style.display = "inline-block";
+      retryBtn.style.display = "none";
+    } else {
+      orbCharge = 0;
+      successfulGames = 0;
+      retryBtn.style.display = "inline-block";
+      continueBtn.style.display = "none";
     }
+    updateOrb();
+    updateScore();
+    updateLeaderboard();
+  }
 
-    function endGame(message) {
-      gameEnded = true;
-      setTimeout(() => {
-        alert(message);
-        playAgainBtn.style.display = 'block';
-      }, 300);
-    }
+  function resetTiles() {
+    [firstTile, secondTile] = [null, null];
+    lockBoard = false;
+  }
 
-    tiles.forEach((color, index) => {
-      const tile = document.createElement('div');
-      tile.className = 'tile';
+  function generateTiles() {
+    gameGrid.innerHTML = "";
+    tiles = [...colors, ...colors].sort(() => 0.5 - Math.random());
+    tiles.forEach(color => {
+      const tile = document.createElement("div");
+      tile.className = "tile";
       tile.dataset.color = color;
-      tile.dataset.index = index;
 
-      tile.addEventListener('click', () => {
-        if (lockBoard || tile.classList.contains('revealed') || tile === firstTile || remainingTurns <= 0 || gameEnded) return;
-
+      tile.addEventListener("click", () => {
+        if (!playerName || lockBoard || tile.classList.contains("revealed") || tile === firstTile || remainingTurns <= 0 || gameEnded) return;
         tile.style.background = color;
-
         if (!firstTile) {
           firstTile = tile;
         } else {
           secondTile = tile;
           lockBoard = true;
-
           if (firstTile.dataset.color === secondTile.dataset.color) {
+            firstTile.classList.add("revealed");
+            secondTile.classList.add("revealed");
             streak++;
-            if (streak > 1) {
-              remainingTurns++; // Reward for streak
-            }
+            if (remainingTurns > 5) remainingTurns--;
             updateTurns();
-            firstTile.classList.add('revealed');
-            secondTile.classList.add('revealed');
-            reset();
-            checkGameOver();
+            resetTiles();
+            if (document.querySelectorAll('.tile.revealed').length === tiles.length) {
+              endGame("🎉 You matched all colors!", true);
+            }
           } else {
             streak = 0;
             remainingTurns--;
             updateTurns();
-
             setTimeout(() => {
               firstTile.style.background = "#444";
               secondTile.style.background = "#444";
-              reset();
-
-              if (remainingTurns === 0 && document.querySelectorAll('.tile.revealed').length < tiles.length) {
-                endGame("Game Over! You ran out of turns.");
+              resetTiles();
+              if (remainingTurns <= 0) {
+                endGame("Game Over! You ran out of turns.", false);
               }
             }, 800);
           }
         }
       });
 
-      grid.appendChild(tile);
+      gameGrid.appendChild(tile);
     });
+  }
 
-    function reset() {
-      [firstTile, secondTile] = [null, null];
-      lockBoard = false;
-    }
-
-    function checkGameOver() {
-      const allRevealed = document.querySelectorAll('.tile.revealed');
-      if (allRevealed.length === tiles.length) {
-        endGame("🎉 Congratulations! You matched all colors.");
-      }
-    }
-
-    playAgainBtn.addEventListener('click', () => {
-      location.reload();
-    });
-
+  function restartGame(turns) {
+    remainingTurns = turns;
+    streak = 0;
+    gameEnded = false;
+    updateOrb();
     updateTurns();
-  </script>
+    generateTiles();
+    continueBtn.style.display = "none";
+    retryBtn.style.display = "none";
+  }
+
+  continueBtn.addEventListener("click", () => {
+    const newTurns = (successfulGames % 3 === 0 && successfulGames > 0) ? 5 : 10;
+    restartGame(newTurns);
+  });
+
+  retryBtn.addEventListener("click", () => {
+    restartGame(10);
+  });
+</script>
 
 </body>
 </html>
