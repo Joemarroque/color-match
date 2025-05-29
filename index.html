@@ -61,8 +61,8 @@
   };
 
   // Initialize Firebase with compat version to allow firebase.database()
-  firebase.initializeApp(firebaseConfig);
-  const db = firebase.database();
+import { firebaseConfig } from './config.js';
+firebase.initializeApp(firebaseConfig);
 
   const gameGrid = document.getElementById("gameGrid");
   const turnsDisplay = document.getElementById("turns");
