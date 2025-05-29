@@ -12,10 +12,14 @@
     .tile { width: 80px; height: 80px; background: #444; cursor: pointer; border-radius: 8px; transition: background 0.3s; }
     .tile.revealed { cursor: default; opacity: 0.6; }
     #startGame:disabled { opacity: 0.5; cursor: not-allowed; }
-    .orb { width: 80px; height: 80px; background: #555; border-radius: 50%; margin-top: 15px; }
-    .glow-1 { box-shadow: 0 0 8px 3px white; }
-    .glow-2 { box-shadow: 0 0 15px 5px orange; }
-    .glow-3 { box-shadow: 0 0 25px 8px gold; }
+    .orb { background: #555; border-radius: 50%; margin-top: 15px; transition: all 0.3s; }
+    .orb-size-0 { width: 20px; height: 20px; }
+    .orb-size-1 { width: 40px; height: 40px; }
+    .orb-size-2 { width: 60px; height: 60px; }
+    .orb-size-3 { width: 80px; height: 80px; }
+    .glow-1 { box-shadow: 0 0 8px 3px blue; }
+    .glow-2 { box-shadow: 0 0 15px 5px cyan; }
+    .glow-3 { box-shadow: 0 0 25px 8px orange; }
     .leaderboard { margin-top: 20px; max-height: 300px; overflow-y: auto; }
     .entry.highlight { font-weight: bold; color: yellow; }
     button { margin-top: 10px; padding: 10px; border: none; border-radius: 5px; background: #0a74da; color: white; cursor: pointer; }
@@ -61,8 +65,8 @@
   };
 
   // Initialize Firebase with compat version to allow firebase.database()
-import { firebaseConfig } from './config.js';
-firebase.initializeApp(firebaseConfig);
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
 
   const gameGrid = document.getElementById("gameGrid");
   const turnsDisplay = document.getElementById("turns");
@@ -125,12 +129,20 @@ firebase.initializeApp(firebaseConfig);
     scoreDisplay.textContent = `Score: ${score}`;
   }
 
-  function updateOrb() {
-    orb.className = "orb";
-    if (orbCharge === 1) orb.classList.add("glow-1");
-    if (orbCharge === 2) orb.classList.add("glow-2");
-    if (orbCharge >= 3) orb.classList.add("glow-3");
+function updateOrb() {
+  orb.className = "orb"; // reset base class
+
+  // Add size class based on orbCharge
+  if (orbCharge === 1) {
+    orb.classList.add("orb-size-1", "glow-1");
+  } else if (orbCharge === 2) {
+    orb.classList.add("orb-size-2", "glow-2");
+  } else if (orbCharge >= 3) {
+    orb.classList.add("orb-size-3", "glow-3");
+  } else {
+    orb.classList.add("orb-size-0");
   }
+}
 
   function updateLeaderboard() {
     db.ref("players")
