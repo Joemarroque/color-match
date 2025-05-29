@@ -8,3 +8,5 @@
     appId: "1:377488439379:web:7cc6c74cd528fa08b22ea6",
     measurementId: "G-57VFQSTKLP"
   };
+
+export { firebaseConfig };
