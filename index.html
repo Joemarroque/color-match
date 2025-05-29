@@ -87,7 +87,14 @@
       margin-bottom: 10px;
       color: #aaa;
     }
+    
   </style>
+  
+    <!-- Firebase App (Core SDK) -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app.js"></script>
+
+<!-- Firebase Realtime Database -->
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database.js"></script>
 </head>
 <body>
 
@@ -110,6 +117,23 @@
 
 <script>
   const colors = ["red", "blue", "green", "yellow", "orange", "purple", "cyan", "pink"];
+  // Firebase Config
+const firebaseConfig = {
+  apiKey: "AIzaSyA0cWK1uSrL6RdJM7ZD72-buLoh8Yoj2ik",
+  authDomain: "match-color-778e0.firebaseapp.com",
+  databaseURL: "https://match-color-778e0-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "match-color-778e0",
+  storageBucket: "match-color-778e0.firebasestorage.app",
+  messagingSenderId: "377488439379",
+  appId: "1:377488439379:web:7cc6c74cd528fa08b22ea6",
+  measurementId: "G-57VFQSTKLP"
+};
+
+// Initialize Firebase
+firebase.initializeApp(firebaseConfig);
+
+// Get reference to the database
+const db = firebase.database();
   const gameGrid = document.getElementById("gameGrid");
   const turnsDisplay = document.getElementById("turns");
   const scoreDisplay = document.getElementById("score");
@@ -163,19 +187,27 @@
     if (orbCharge === 2) orb.classList.add("glow-2");
     if (orbCharge >= 3) orb.classList.add("glow-3");
   }
-
+  
   function updateLeaderboard() {
-    players.push({ name: playerName, score });
-    players = players.sort((a, b) => b.score - a.score).slice(0, 7);
-    leaderboard.innerHTML = `<strong>Leaderboard</strong><br>`;
-    players.forEach(p => {
-      const entry = document.createElement("div");
-      entry.className = "entry";
-      if (p.name === playerName) entry.classList.add("highlight");
-      entry.textContent = `${p.name}: ${p.score}`;
-      leaderboard.appendChild(entry);
+  db.ref("players")
+    .orderByChild("score")
+    .limitToLast(7)
+    .once("value", snapshot => {
+      const data = snapshot.val();
+      if (!data) return;
+
+      const sorted = Object.values(data).sort((a, b) => b.score - a.score);
+      leaderboard.innerHTML = `<strong>Leaderboard</strong><br>`;
+
+      sorted.forEach(p => {
+        const entry = document.createElement("div");
+        entry.className = "entry";
+        if (p.name === playerName) entry.classList.add("highlight");
+        entry.textContent = `${p.name}: ${p.score}`;
+        leaderboard.appendChild(entry);
+      });
     });
-  }
+}
 
   function endGame(message, won) {
     gameEnded = true;
@@ -197,6 +229,15 @@
     }
     updateOrb();
     updateScore();
+    
+    if (playerName) {
+  const playerRef = db.ref("players/" + playerName);
+  playerRef.set({
+    name: playerName,
+    score: score
+  });
+}
+    
     updateLeaderboard();
   }
 
